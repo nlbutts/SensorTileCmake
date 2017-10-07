@@ -1,0 +1,71 @@
+# ------------------------------------------------------- MINIMUM CMAKE VERSION
+cmake_minimum_required(VERSION 3.7)
+
+# # ---------------------------------------------------------------- ARCHITECTURE
+SET(CMAKE_SYSTEM_NAME Generic)
+SET(CMAKE_SYSTEM_PROCESSOR arm_baremetal)
+
+
+# ---------------------------------------------------- FIND THIS TOOLCHAIN FILE
+# Because of the way cmake handles toolchain files, there is no way to derive
+# the path to the toolchain folder without using an environment variable. The
+# first time this file is ran, it is done in the top level CMakeLists.txt.
+# The second time it is called, when CMake wants to test the compiler, this
+# file is "include"'ed in a cmake subshell. So this will set an environment
+# variable the first time through to allow the second pass to work.
+if(NOT "${CMAKE_TOOLCHAIN_FILE}" STREQUAL "")
+    set(THIS_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE})
+    set(ENV{CMAKE_TOOLCHAIN_FILE} ${THIS_TOOLCHAIN_FILE})
+elseif(NOT "$ENV{CMAKE_TOOLCHAIN_FILE}" STREQUAL "")
+    set(THIS_TOOLCHAIN_FILE $ENV{CMAKE_TOOLCHAIN_FILE})
+else()
+    message(FATAL_ERROR "Unable to self reference toolchain file.")
+endif()
+
+get_filename_component(THIS_TOOLCHAIN_PATH ${THIS_TOOLCHAIN_FILE} DIRECTORY)
+
+
+if (WIN32)
+    set(TOOLCHAIN_PATH ${THIS_TOOLCHAIN_PATH}/gcc-arm-none-eabi/win32)
+else()
+    set(TOOLCHAIN_PATH ${THIS_TOOLCHAIN_PATH}/gcc-arm-none-eabi/linux)
+endif()
+message(STATUS "Toolchain path: ${TOOLCHAIN_PATH}")
+
+
+# --------------------------------------------------------------- SET TOOLCHAIN
+if (WIN32)
+    get_filename_component(CROSS_CC ${TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe ABSOLUTE)
+    get_filename_component(CROSS_CXX ${TOOLCHAIN_PATH}/bin/arm-none-eabi-g++.exe ABSOLUTE)
+    get_filename_component(CROSS_OD ${TOOLCHAIN_PATH}/bin/arm-none-eabi-objdump.exe ABSOLUTE)
+    get_filename_component(CROSS_OC ${TOOLCHAIN_PATH}/bin/arm-none-eabi-objcopy.exe ABSOLUTE)
+else()
+    get_filename_component(CROSS_CC ${TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc ABSOLUTE)
+    get_filename_component(CROSS_CXX ${TOOLCHAIN_PATH}/bin/arm-none-eabi-g++ ABSOLUTE)
+    get_filename_component(CROSS_OD ${TOOLCHAIN_PATH}/bin/arm-none-eabi-objdump ABSOLUTE)
+    get_filename_component(CROSS_OC ${TOOLCHAIN_PATH}/bin/arm-none-eabi-objcopy ABSOLUTE)
+endif()
+
+set(CMAKE_C_COMPILER "${CROSS_CC}")
+set(CMAKE_CXX_COMPILER "${CROSS_CXX}")
+set(OD "${CROSS_OD}")
+set(OC "${CROSS_OC}")
+
+message(STATUS "Using CC: ${CMAKE_C_COMPILER}")
+message(STATUS "Using CXX: ${CMAKE_CXX_COMPILER}")
+message(STATUS "Using OC: ${OC}")
+message(STATUS "Using OD: ${OD}")
+
+
+# ---------------------------------------------------- SET TOOLCHAIN PARAMETERS
+
+# This will tell CMake to test the compiler with a lib instead of an
+# executable, since an executable won't link properly when targeting bare metal
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+SET(CMAKE_FIND_ROOT_PATH ${TOOLCHAIN_PATH})
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
