@@ -1,0 +1,1 @@
+toolchain/gcc-arm-none-eabi/linux/bin/arm-none-eabi-gdb -tui --command gdbinit build/arm/application/application_debug.elf
